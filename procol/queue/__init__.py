@@ -2,10 +2,8 @@ import atexit
 import multiprocessing
 import thread
 
-from ..console import print_err
 
-
-class Producer(object):
+class ProducerRequests(object):
 
     def __init__(self):
         self._closed = multiprocessing.Event()
@@ -28,7 +26,6 @@ class Producer(object):
                     break
                 yield request
             except (KeyboardInterrupt, SystemExit):
-                print_err(self.__class__.__name__, 'Queue Exiting')
                 self.close()
                 thread.interrupt_main()
 
@@ -65,6 +62,38 @@ class Producer(object):
         return self.requests()
 
 
+class Producer(ProducerRequests):
+
+    def requests(self, on_result=None):
+        requests = super(Producer, self).requests()
+        for request in requests:
+            result = (yield request)
+
+            self._result_produced(result)
+            if on_result:
+                yield on_result(result)
+
+    def _result_produced(self, result):
+        pass
+
+
+class ProducerQueue(Producer):
+
+    def __init__(self, queue_class):
+        super(ProducerQueue, self).__init__()
+        self._queue = queue_class(1)
+
+    def _send_request(self, request):
+        return self._queue.put(request)
+
+    def _get_request(self):
+        request = self._queue.get()
+        return request
+
+    def _finalize(self):
+        self._queue.close()
+
+
 class ProducerConsumer(object):
     def __init__(self, producer):
         self._producer = producer
@@ -73,55 +102,44 @@ class ProducerConsumer(object):
         raise NotImplementedError
 
     def close(self):
-        self._producer.close()
+        self._producer_close()
         self._consumer_close()
 
     def requests(self):
-        return self._producer.requests()
+        return self._producer.requests(on_result=self._result_produced)
+
+    def _result_produced(self, result):
+        pass
+
+    def _producer_close(self):
+        self._producer.close()
 
     def _consumer_close(self):
         pass
 
-    def __iter__(self):
-        return self._producer.requests()
-
-
-class ProducerQueue(Producer):
-
-    def __init__(self, producer_queue):
-        super(ProducerQueue, self).__init__()
-        self._producer = producer_queue(1)
-
-    def _send_request(self, request):
-        return self._producer.put(request)
-
-    def _get_request(self):
-        request = self._producer.get()
-        return request
-
-    def _finalize(self):
-        self._producer.close()
-
 
 class ProducerConsumerQueue(ProducerConsumer):
     def __init__(self, queue_class):
-        super(ProducerConsumerQueue, self).__init__(ProducerQueue(queue_class))
+        super(ProducerConsumerQueue, self).__init__(self._producer(queue_class))
         self._execute_lock = multiprocessing.Lock()
-        self._consumer = queue_class(1)
+        self._results = queue_class(1)
+
+    def _producer(self, queue_class):
+        return ProducerQueue(queue_class)
 
     def execute(self, request):
         with self._execute_lock:
             self._producer.send(request)
             return self._get_result()
 
-    def _get_result(self):
-        return self._consumer.get()
+    def _result_produced(self, result):
+        self._results.put(result)
 
-    def add_result(self, result):
-        self._consumer.put(result)
+    def _get_result(self):
+        return self._results.get()
 
     def _consumer_close(self):
-        self._consumer.close()
+        self._results.close()
 
 
 class _Interrupt(object):
@@ -139,7 +157,8 @@ class ProducerConsumerRun(object):
         concurrent_class(target=_produce_results, args=(producer_consumer, producer_fun)).start()
 
 
-def _produce_results(producer, process_request):
-    for request in producer.requests():
-        result = process_request(request)
-        producer.add_result(result)
+def _produce_results(producer, produce):
+    requests = producer.requests()
+    for request in requests:
+        result = produce(request)
+        requests.send(result)

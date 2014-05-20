@@ -11,34 +11,32 @@ class ProducerZeroMq(Producer):
         super(ProducerZeroMq, self).__init__()
         self._context = zmq.Context()
         self._address = 'tcp://{}:{}'.format(host, str(port))
-        self._started = False
+        self._socket = None
 
     def _init(self):
-        self._producer = self._context.socket(zmq.REP)
-        self._producer.bind(self._address)
-        self._started = True
+        self._socket = self._context.socket(zmq.REP)
+        self._socket.bind(self._address)
 
     def _send_request(self, request):
-        if self._started:
-            with self.connect() as producer:
-                producer.send_pyobj(request)
+        with self.connect() as producer:
+            producer.send_pyobj(request)
 
     @contextmanager
     def connect(self):
-        with closing(self._context.socket(zmq.REQ)) as producer:
-            producer.connect(self._address)
-            yield producer
+        with closing(self._context.socket(zmq.REQ)) as socket:
+            socket.connect(self._address)
+            yield socket
 
-    def add_result(self, result):
-        self._producer.send_pyobj(result)
+    def _result_produced(self, result):
+        self._socket.send_pyobj(result)
 
     def _get_request(self):
-        request = self._producer.recv_pyobj()
-        return request
+        if self._socket:
+            request = self._socket.recv_pyobj()
+            return request
 
     def _finalize(self):
-        print 'Finaliz'
-        self._producer.close()
+        self._socket.close()
 
 
 class ProducerConsumerZeroMq(ProducerConsumer):
@@ -53,6 +51,3 @@ class ProducerConsumerZeroMq(ProducerConsumer):
             producer.send_pyobj(request)
             result = producer.recv_pyobj()
             return result
-
-    def add_result(self, result):
-        self._producer.add_result(result)
