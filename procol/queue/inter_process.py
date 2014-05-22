@@ -1,9 +1,8 @@
 from Queue import Queue
-import threading
 
 from funlib import FunctionCall
 
-from . import ProducerConsumerQueue, ProducerConsumer as ProducerConsumerBase, ProducerConsumerRun, ProducerQueue
+from . import ProducerConsumerQueue, ProducerConsumer as ProducerConsumerBase, ProducerQueue
 
 
 class ThreadProducerQueue(ProducerQueue):
@@ -19,15 +18,15 @@ class ThreadProducerQueue(ProducerQueue):
         self._queue.join()
 
 
-class ProducerConsumerThreadQueue(ProducerConsumerQueue):
+class ProducerConsumer(ProducerConsumerQueue):
     def __init__(self):
-        super(ProducerConsumerThreadQueue, self).__init__(Queue)
+        super(ProducerConsumer, self).__init__(Queue)
 
     def _producer(self, queue_class):
         return ThreadProducerQueue()
 
     def _result_produced(self, result):
-        super(ProducerConsumerThreadQueue, self)._result_produced(result)
+        super(ProducerConsumer, self)._result_produced(result)
         self._results.task_done()
 
     def _consumer_close(self):
@@ -35,27 +34,24 @@ class ProducerConsumerThreadQueue(ProducerConsumerQueue):
 
 
 #uses futures instead
-class ThreadCallableRequests(ProducerConsumerBase):
+class CallableRequests(ProducerConsumerBase):
 
     def __init__(self):
-        super(ThreadCallableRequests, self).__init__(ThreadProducerQueue())
+        super(CallableRequests, self).__init__(ThreadProducerQueue())
 
     def execute(self, request):
-        request = ThreadFuture(request)
+        request = IntraProcessFuture(request)
         self._producer.send(request)
         return request.result
 
     def _result_produced(self, result):
-        super(ThreadCallableRequests, self)._result_produced(result)
+        super(CallableRequests, self)._result_produced(result)
 
 
-ProducerConsumer = ProducerConsumerThreadQueue
-
-
-class ThreadFuture(FunctionCall):
+class IntraProcessFuture(FunctionCall):
 
     def __init__(self, function):
-        super(ThreadFuture, self).__init__(function)
+        super(IntraProcessFuture, self).__init__(function)
         self._queue = Queue(1)
 
     def _call_fun(self, *args, **kwargs):
@@ -79,9 +75,3 @@ class ThreadFuture(FunctionCall):
             raise result
 
         return result
-
-
-class ProducerConsumerThread(ProducerConsumerRun):
-
-    def __init__(self, producer_consumer, producer_fun):
-        super(ProducerConsumerThread, self).__init__(threading.Thread, producer_consumer, producer_fun)

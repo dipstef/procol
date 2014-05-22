@@ -1,12 +1,13 @@
 import atexit
-import multiprocessing
 import thread
+from threading import Thread
+from multiprocessing import Process, Event, Lock
 
 
 class ProducerRequests(object):
 
     def __init__(self):
-        self._closed = multiprocessing.Event()
+        self._closed = Event()
 
         atexit.register(self.close)
 
@@ -121,7 +122,7 @@ class ProducerConsumer(object):
 class ProducerConsumerQueue(ProducerConsumer):
     def __init__(self, queue_class):
         super(ProducerConsumerQueue, self).__init__(self._producer(queue_class))
-        self._execute_lock = multiprocessing.Lock()
+        self._execute_lock = Lock()
         self._results = queue_class(1)
 
     def _producer(self, queue_class):
@@ -153,12 +154,49 @@ class RequestsClosed(Exception):
 
 class ProducerConsumerRun(object):
 
-    def __init__(self, concurrent_class, producer_consumer, producer_fun):
-        concurrent_class(target=_produce_results, args=(producer_consumer, producer_fun)).start()
+    def __init__(self, producer_consumer_class, *args, **kwargs):
+        self._producer_consumer = producer_consumer_class(*args, **kwargs)
+        self._running = False
+        self._lock = Lock()
+
+    def produce(self, produce_fun):
+        with self._lock:
+            if not self._running:
+                concurrent = self.__concurrent__(target=self._produce_requests, args=(produce_fun, ))
+                concurrent.daemon = True
+                concurrent.start()
+                self._running = True
+            else:
+                raise RuntimeError('Already running')
+
+    def execute(self, request):
+        return self._producer_consumer.execute(request)
+
+    def __getattr__(self, item):
+        return getattr(self._producer_consumer, item)
+
+    def _produce_requests(self, produce):
+        requests = self._producer_consumer.requests()
+        for request in requests:
+            result = produce(request)
+            requests.send(result)
+        self._done_requests()
+
+    def _done_requests(self):
+        pass
+
+    def close(self):
+        self._producer_consumer.close()
 
 
-def _produce_results(producer, produce):
-    requests = producer.requests()
-    for request in requests:
-        result = produce(request)
-        requests.send(result)
+class ProducerConsumerThread(ProducerConsumerRun):
+    __concurrent__ = Thread
+
+
+class ProducerConsumerProcess(ProducerConsumerRun):
+    __concurrent__ = Process
+
+
+
+
+
