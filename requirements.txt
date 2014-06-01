@@ -1,0 +1,2 @@
+pyzmq
+git+git://github.com/dipstef/funlib.git
