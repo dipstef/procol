@@ -5,16 +5,18 @@ import zmq
 from . import Producer, ProducerConsumer
 
 
+_context = zmq.Context()
+
+
 class ProducerZeroMq(Producer):
 
     def __init__(self, host='127.0.0.1', port=5557):
         super(ProducerZeroMq, self).__init__()
-        self._context = zmq.Context()
         self._address = 'tcp://{}:{}'.format(host, str(port))
         self._socket = None
 
     def _init(self):
-        self._socket = self._context.socket(zmq.REP)
+        self._socket = _context.socket(zmq.REP)
         self._socket.bind(self._address)
 
     def _send_request(self, request):
@@ -23,7 +25,7 @@ class ProducerZeroMq(Producer):
 
     @contextmanager
     def connect(self):
-        with closing(self._context.socket(zmq.REQ)) as socket:
+        with closing(_context.socket(zmq.REQ)) as socket:
             socket.connect(self._address)
             yield socket
 
