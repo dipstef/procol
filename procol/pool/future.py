@@ -1,6 +1,6 @@
 import multiprocessing
 import traceback
-from funlib import LambdaFunction
+from funlib import Lambda
 
 
 class PoolWorkerError(Exception):
@@ -8,7 +8,7 @@ class PoolWorkerError(Exception):
         super(PoolWorkerError, self).__init__(*args, **kwargs)
 
 
-class PoolFunction(LambdaFunction):
+class PoolFunction(Lambda):
     def __call__(self):
         try:
             result = super(PoolFunction, self).__call__()

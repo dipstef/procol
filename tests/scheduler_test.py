@@ -1,5 +1,5 @@
-from dated.normalized import utc
-from dated.date_time import seconds
+from dated import utc
+from dated.timedelta import seconds
 import time
 from procol.scheduler import schedule
 

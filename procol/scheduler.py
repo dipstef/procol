@@ -1,7 +1,7 @@
 import atexit
 from threading import Timer, Event
 
-from dated.date_time import to_seconds
+from dated.timedelta import to_seconds
 
 
 class Repeater(object):
