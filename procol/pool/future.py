@@ -30,7 +30,6 @@ class PoolFunction(Lambda):
             traceback_string = '{} Error executing: {}\n{}'.format(name, str(self), traceback.format_exc())
 
             error = PoolWorkerError(e, traceback_string)
-            #error.error = e
             raise error
 
 
@@ -72,7 +71,7 @@ class Future(Function):
             if not self._error:
                 return '{function}: {outcome}'.format(function=self._fun, outcome=self._result)
             else:
-                return '{function} Failed:  {error}'.format(function=self._fun, error=repr(self._error.cause))
+                return '{function} failed:  {error}'.format(function=self._fun, error=repr(self._error.cause))
         else:
             return '{function}: not executed'.format(function=self._fun)
 

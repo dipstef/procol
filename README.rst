@@ -16,7 +16,7 @@ A friendly wrapper of the ``multiprocessing`` Pool
 
     def _sleep(j):
         if j == 2:
-            raise Exception('foo')
+            raise ValueError('two')
         time.sleep(j)
         return j
 
@@ -27,7 +27,7 @@ Returns futures objects
 
 .. code-block:: python
 
-    >>> futures = pool.map_async(print_test, range(5))
+    >>> futures = pool.map_async(_sleep, range(5))
 
     for future in futures:
         try:
@@ -36,22 +36,22 @@ Returns futures objects
         except PoolWorkerError, e:
             print_err(e)
 
-    print_test(0): 0
-    print_test(1): 1
+    _sleep(0): 0
+    _sleep(1): 1
 
 When an error is raised from a worker a traceback from the call originating the error is also returned
 
 .. code-block:: python
 
-    PoolWorker-3 Error executing: print_test(2)
+    PoolWorker-3 Error executing: _sleep(2)
     Traceback (most recent call last):
     ......
-        raise Exception('foo')
-    Exception: foo
+        raise ValueError('two')
+    ValueError: two
 
-    print_test(3): 3
-    print_test(4): 4
-    print_test(5): 5
+    _sleep(3): 3
+    _sleep(4): 4
+    _sleep(5): 5
 
 However if you want to retrieve the results of the futures the execution stops as soon an error is encountered
 
@@ -59,8 +59,28 @@ However if you want to retrieve the results of the futures the execution stops a
 
     >>> results = futures.results()
 
-    PoolWorker-3 Error executing: print_test(2)
+    PoolWorker-3 Error executing: _sleep(2)
     Traceback (most recent call last):
     ......
-        raise Exception('foo')
-    Exception: foo
+        raise ValueError('two')
+    ValueError: two
+
+Has the exact behavior as:
+
+.. code-block:: python
+
+   >>> pool.map(_sleep, range(5))
+
+Futures can be iterated in order of completion
+
+.. code-block:: python
+
+    futures = pool.map_async(_sleep, reversed(range(5)))
+    for future in futures.iterate_completed():
+        print future
+
+    _sleep(2) failed:  ValueError('two',)
+    _sleep(0): 0
+    _sleep(1): 1
+    _sleep(3): 3
+    _sleep(4): 4
