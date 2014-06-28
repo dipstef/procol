@@ -1,10 +1,6 @@
 Procol
 ======
-
-A library for concurrent processing:
-Includes producer-consumer for in-inter process communication, as well remote implementations based on zero-mq
-and multiprocessing remote manager.
-Other features include scheduling and a pool worker
+A collection of function and classes for concurrent processing
 
 Pool
 ====
@@ -92,3 +88,112 @@ Futures can be iterated in order of completion
     _sleep(1): 1
     _sleep(3): 3
     _sleep(4): 4
+
+
+Queues
+======
+Producer consumer queue implementations:
+
+Inter process, the producer is running in a separate thread
+
+.. code-block:: python
+
+    from procol.queue.ipc import ProducerThread
+
+Or Process
+
+.. code-block:: python
+
+    from procol.queue.ipc import ProducerProcess
+
+
+.. code-block:: python
+
+    def _sleep(j):
+        time.sleep(j)
+        return j
+
+    >>> producer = ProducerThread(producer=_sleep)
+    >>> producer.start()
+
+
+    def _execute(j):
+        result = producer.execute(j)
+        print 'Received: ', result
+
+    processes = [Process(target=_execute, args=(i, )) for i in range(5)]
+    for process in processes:
+        process.start()
+
+    Received:  0
+    Received:  1
+    Received:  2
+    Received:  3
+    Received:  4
+
+Between threads in the same process:
+
+Remote using ``multiprocessing`` managers
+
+Start the server:
+
+.. code-block:: python
+
+   from procol.queue.manager import queue_server
+
+   queue_server(ProducerThread(producer=_sleep), port=50000)
+
+Client:
+
+.. code-block:: python
+
+   from procol.queue.manager import queue_client
+
+   queue = queue_client(('server', 5000)
+
+
+High-performance ``zeromq`` queues:
+
+Inter-process:
+
+.. code-block:: python
+
+    from procol.queue import zero_mq
+
+    >>> producer = zero_mq.ProducerProcess(producer=_sleep)
+    >>> producer.start()
+
+    >>> assert producer.execute(1) is 1
+
+Remote:
+
+Server:
+
+.. code-block:: python
+
+   >>> producer = zero_mq.Producer(port=12345)
+
+
+.. code-block:: python
+
+   >>> producer = zero_mq.Consumer(host='server-address', port=12345)
+   >>> assert producer.execute(1) is 1
+
+
+Scheduler
+=========
+
+.. code-block:: python
+
+    from procol.scheduler import schedule, repeat
+
+    def print_hello():
+        print 'Hello: ' , datetime.now()
+
+    schedule(print_hello, after=seconds(2))
+
+Repeater
+
+    .. code-block:: python
+
+    schedule(print_hello, every=seconds(10), after=seconds(2))

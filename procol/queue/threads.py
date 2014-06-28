@@ -2,7 +2,8 @@ from Queue import Queue
 
 from funlib import FunctionCall
 
-from . import ProducerConsumerQueue, ProducerConsumer as ProducerConsumerBase, ProducerQueue
+from . import ProducerConsumerQueue, ProducerConsumer as ProducerConsumerBase, ProducerQueue, \
+    ProducerThread as RunInThread
 
 
 class ThreadProducerQueue(ProducerQueue):
@@ -75,3 +76,8 @@ class IntraProcessFuture(FunctionCall):
             raise result
 
         return result
+
+
+class ProducerThread(RunInThread):
+    def __init__(self, producer):
+        super(ProducerThread, self).__init__(ProducerConsumer, producer)

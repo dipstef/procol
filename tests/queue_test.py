@@ -1,7 +1,6 @@
-from procol.queue.remote_manager import queue_manager_process
-from procol.queue import intra_processes, inter_process, ProducerConsumerThread, ProducerConsumerProcess
-from procol.queue.inter_process import CallableRequests
-from procol.queue.zero_mq import ProducerConsumerZeroMq
+from procol.queue.manager import queue_manager_process
+from procol.queue import ipc, threads, zero_mq, ProducerThread, ProducerProcess
+from procol.queue.threads import CallableRequests
 
 
 def produce(request):
@@ -19,24 +18,27 @@ def _test_queue(requests):
     requests.close()
 
 
+def _start_requests(request_class):
+    requests = ProducerThread(request_class, producer=produce)
+    requests.start()
+    return requests
+
+
 def _test_process_queue(request_class):
-    requests = ProducerConsumerProcess(request_class)
-    requests.produce(produce_fun=produce)
+    requests = ProducerProcess(request_class, producer=produce)
+    requests.start()
     _test_queue(requests)
 
 
 def _test_thread_queue(request_class):
-    requests = ProducerConsumerThread(request_class)
-
-    requests.produce(produce_fun=produce)
-
+    requests = _start_requests(request_class)
     _test_queue(requests)
 
 
 def _test_thread_pool():
-    requests = ProducerConsumerThread(CallableRequests)
+    requests = ProducerThread(CallableRequests, producer=lambda function: produce(function()))
 
-    requests.produce(lambda function: produce(function()))
+    requests.start()
 
     assert (1, 2) == requests.execute(lambda: (1, 2))
     result = requests.execute(lambda: (3, 4))
@@ -46,19 +48,24 @@ def _test_thread_pool():
 
 
 def _remote_manager_queue():
-    queue = ProducerConsumerThread(intra_processes.ProducerConsumer)
-    queue.produce(produce_fun=produce)
+    queue = ProducerThread(ipc.ProducerConsumer, producer=produce)
 
     queue_manager = queue_manager_process(queue)
     return queue_manager
 
 
+def _test_zero_mq():
+    requests = _start_requests(zero_mq.Producer)
+    _test_queue(zero_mq.Consumer())
+    requests.close()
+
+
 def main():
-    _test_process_queue(ProducerConsumerZeroMq)
-    _test_process_queue(intra_processes.ProducerConsumer)
+    _test_zero_mq()
+    _test_process_queue(ipc.ProducerConsumer)
     _test_queue(_remote_manager_queue())
 
-    _test_thread_queue(inter_process.ProducerConsumer)
+    _test_thread_queue(threads.ProducerConsumer)
     _test_thread_pool()
 
 if __name__ == '__main__':

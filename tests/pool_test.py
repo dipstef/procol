@@ -1,5 +1,6 @@
 import time
-from procol.console import print_line, print_err
+
+from procol.console import print_err
 from procol.pool import ProcessPool, PoolWorkerError
 
 

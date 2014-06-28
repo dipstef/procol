@@ -14,7 +14,9 @@ def queue_manager(queue, address=None):
 def queue_manager_process(queue):
     manager = queue_manager(queue)
 
+    queue.start()
     manager.start()
+
     manager_queue = manager.get_queue()
     return manager_queue
 
@@ -23,6 +25,7 @@ def queue_server(queue, port=50000, serve_locally=True):
     host = '127.0.0.1' if serve_locally else '0.0.0.0'
 
     manager = queue_manager(queue, address=(host, port))
+    queue.start()
     server = manager.get_server()
 
     print 'Serving on port: ', port

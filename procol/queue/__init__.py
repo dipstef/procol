@@ -42,25 +42,16 @@ class ProducerRequests(object):
     def close(self):
         if self._active_queue():
             self._closed.set()
-            self._send_request(_Interrupt())
+            self._interrupt()
 
     def _active_queue(self):
         return not self._closed.is_set()
 
-    def send(self, request):
-        if not self._active_queue():
-            raise RequestsClosed('Queue already closed can not perform: %s' % request)
-        try:
-            return self._send_request(request)
-        except (KeyboardInterrupt, SystemExit):
-            self.close()
-            raise
-
-    def _send_request(self, request):
-        raise NotImplementedError
-
     def __iter__(self):
         return self.requests()
+
+    def _interrupt(self):
+        pass
 
 
 class Producer(ProducerRequests):
@@ -72,7 +63,8 @@ class Producer(ProducerRequests):
 
             self._result_produced(result)
             if on_result:
-                yield on_result(result)
+                on_result(result)
+            yield
 
     def _result_produced(self, result):
         pass
@@ -84,6 +76,15 @@ class ProducerQueue(Producer):
         super(ProducerQueue, self).__init__()
         self._queue = queue_class(1)
 
+    def send(self, request):
+        if not self._active_queue():
+            raise RequestsClosed('Queue already closed can not perform: %s' % request)
+        try:
+            return self._send_request(request)
+        except (KeyboardInterrupt, SystemExit):
+            self.close()
+            raise
+
     def _send_request(self, request):
         return self._queue.put(request)
 
@@ -93,6 +94,9 @@ class ProducerQueue(Producer):
 
     def _finalize(self):
         self._queue.close()
+
+    def _interrupt(self):
+        self._send_request(_Interrupt())
 
 
 class ProducerConsumer(object):
@@ -152,25 +156,24 @@ class RequestsClosed(Exception):
         super(RequestsClosed, self).__init__(*args, **kwargs)
 
 
-class ProducerConsumerRun(object):
+class ProducerRun(object):
 
-    def __init__(self, producer_consumer_class, *args, **kwargs):
-        self._producer_consumer = producer_consumer_class(*args, **kwargs)
+    def __init__(self, producer_consumer, producer):
+        self._producer_consumer = producer_consumer
+        self._producer = producer
         self._running = False
         self._lock = Lock()
 
-    def produce(self, produce_fun):
+    def start(self):
         with self._lock:
             if not self._running:
-                concurrent = self.__concurrent__(target=self._produce_requests, args=(produce_fun, ))
+                concurrent = self.__concurrent__(target=self._produce_requests, args=(self._producer, ))
+
                 concurrent.daemon = True
                 concurrent.start()
                 self._running = True
             else:
                 raise RuntimeError('Already running')
-
-    def execute(self, request):
-        return self._producer_consumer.execute(request)
 
     def __getattr__(self, item):
         return getattr(self._producer_consumer, item)
@@ -180,6 +183,7 @@ class ProducerConsumerRun(object):
         for request in requests:
             result = produce(request)
             requests.send(result)
+            #print request
         self._done_requests()
 
     def _done_requests(self):
@@ -189,11 +193,20 @@ class ProducerConsumerRun(object):
         self._producer_consumer.close()
 
 
-class ProducerConsumerThread(ProducerConsumerRun):
+class ProducerConsumerRun(ProducerRun):
+
+    def __init__(self, producer_consumer_class, producer):
+        super(ProducerConsumerRun, self).__init__(producer_consumer_class(), producer)
+
+    def execute(self, request):
+        return self._producer_consumer.execute(request)
+
+
+class ProducerThread(ProducerConsumerRun):
     __concurrent__ = Thread
 
 
-class ProducerConsumerProcess(ProducerConsumerRun):
+class ProducerProcess(ProducerConsumerRun):
     __concurrent__ = Process
 
 

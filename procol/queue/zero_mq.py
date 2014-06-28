@@ -1,33 +1,23 @@
 from contextlib import contextmanager, closing
+from multiprocessing import Process, Lock
 
 import zmq
 
-from . import Producer, ProducerConsumer
-
+from . import Producer as BaseProducer, ProducerRun as BaseProducerRun
 
 _context = zmq.Context()
 
 
-class ProducerZeroMq(Producer):
+class Producer(BaseProducer):
 
     def __init__(self, host='127.0.0.1', port=5557):
-        super(ProducerZeroMq, self).__init__()
+        super(Producer, self).__init__()
         self._address = 'tcp://{}:{}'.format(host, str(port))
         self._socket = None
 
     def _init(self):
         self._socket = _context.socket(zmq.REP)
         self._socket.bind(self._address)
-
-    def _send_request(self, request):
-        with self.connect() as producer:
-            producer.send_pyobj(request)
-
-    @contextmanager
-    def connect(self):
-        with closing(_context.socket(zmq.REQ)) as socket:
-            socket.connect(self._address)
-            yield socket
 
     def _result_produced(self, result):
         self._socket.send_pyobj(result)
@@ -38,18 +28,42 @@ class ProducerZeroMq(Producer):
             return request
 
     def _finalize(self):
+        print 'Closing Socket'
         self._socket.close()
+        print 'Closed'
 
 
-class ProducerConsumerZeroMq(ProducerConsumer):
+class Consumer(object):
     def __init__(self, host='127.0.0.1', port=5557):
-        super(ProducerConsumerZeroMq, self).__init__(ProducerZeroMq(host, port))
         self._address = 'tcp://{}:{}'.format(host, port)
-
-        self._context = zmq.Context()
+        self._lock = Lock()
 
     def execute(self, request):
-        with self._producer.connect() as producer:
+        with self._connect_to_producer() as producer:
             producer.send_pyobj(request)
             result = producer.recv_pyobj()
             return result
+
+    @contextmanager
+    def _connect_to_producer(self):
+        with closing(_context.socket(zmq.REQ)) as socket:
+            socket.connect(self._address)
+            yield socket
+
+    def close(self):
+        pass
+
+
+class ProducerRun(BaseProducerRun):
+
+    def __init__(self, producer, host='127.0.0.1', port=5557):
+        super(ProducerRun, self).__init__(Producer(host, port), producer)
+        self._address = (host, port)
+
+    def execute(self, request):
+        consumer = Consumer(*self._address)
+        return consumer.execute(request)
+
+
+class ProducerProcess(ProducerRun):
+    __concurrent__ = Process
