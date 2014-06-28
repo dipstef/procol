@@ -44,15 +44,15 @@ class Future(Function):
 
     def get(self):
         if not self.is_executed():
-            return self._execute()
+            self._get()
 
         if self._error:
             raise self._error
         return self._result
 
-    def _execute(self):
+    def _get(self):
         try:
-            self._result = self._execute_fun()
+            self._result = self._get_result()
         except BaseException, e:
             self._error = e
         finally:
@@ -61,7 +61,7 @@ class Future(Function):
     def __call__(self):
         return self.get()
 
-    def _execute_fun(self):
+    def _get_result(self):
         return self._fun()
 
     def is_executed(self):
@@ -77,7 +77,7 @@ class Future(Function):
             return '{function}: not executed'.format(function=self._fun)
 
     def __repr__(self):
-        return self.__class__.__name__ + ' ' + str(self)
+        return str(self.__class__.__name__) + ' ' + str(self)
 
 
 class PoolFuture(Future):
@@ -87,7 +87,7 @@ class PoolFuture(Future):
         super(PoolFuture, self).__init__(pool_function)
         self._pool_execution = pool.apply_async(self._fun)
 
-    def _execute_fun(self):
+    def _get_result(self):
         return self._pool_execution.get()
 
     def is_executed(self):
@@ -97,7 +97,7 @@ class PoolFuture(Future):
             executed = self._pool_execution.ready()
 
             if executed:
-                self._execute()
+                self._get()
 
         return executed
 
@@ -114,6 +114,7 @@ class Futures(object):
 
     def iterate_completed(self):
         remaining, completed = list(self._futures), []
+
         while len(completed) < len(self._futures):
             for index, future in enumerate(remaining):
                 if future.is_executed():

@@ -7,8 +7,8 @@ from .future import Futures, PoolWorkerError
 
 class ProcessPool(object):
 
-    def __init__(self, max_size=None):
-        self._pool = multiprocessing.Pool(max_size)
+    def __init__(self, processes=None):
+        self._pool = multiprocessing.Pool(processes)
         atexit.register(lambda: self._pool.terminate())
 
     def execute(self, function, args=(), kwargs=None):

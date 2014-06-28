@@ -4,11 +4,9 @@ from procol.pool import ProcessPool, PoolWorkerError
 
 
 def print_test(j):
-    #print 'Executing', j
     if j == 2:
         raise Exception('foo')
-    else:
-        time.sleep(j)
+    time.sleep(j)
     return j
 
 
@@ -21,13 +19,19 @@ def _print_futures(futures):
 
 
 def main():
-    pool = ProcessPool(10)
+    pool = ProcessPool(5)
 
-    futures = pool.map_async(print_test, [10, 11])
-    print futures
+    futures = pool.map_async(print_test, range(5))
+
+    futures.results()
 
     for future in futures:
-        print future
+        try:
+            result = future.get()
+            print future
+        except PoolWorkerError, e:
+            print_err(e)
+
     #print futures
 
     #pool.map(print_test, range(10))
@@ -40,7 +44,7 @@ def main():
     #futures = pool.map_async(print_test, range(10))
 
     print 'Completed: '
-    futures = pool.map_async(print_test, reversed(range(10)))
+    futures = pool.map_async(print_test, reversed(range(5)))
     #futures = pool.map_async(print_test, [2])
 
     for future in futures.iterate_completed():
