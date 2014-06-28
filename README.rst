@@ -28,10 +28,10 @@ A friendly wrapper of the ``multiprocessing`` Pool
 Returns futures for async operations
 
 .. code-block:: python
+
     >>> future = pool.execute(_sleep, args=(1,))
     assert future.get() is 1
 
-for maps
 
 .. code-block:: python
 
