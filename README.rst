@@ -29,7 +29,7 @@ Returns futures for async operations
 
 .. code-block:: python
     >>> future = pool.execute(_sleep, args=(1,))
-    assert 1 = future.get(
+    assert future.get() is 1
 
 
 .. code-block:: python
