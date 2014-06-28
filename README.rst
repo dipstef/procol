@@ -45,11 +45,7 @@ When an error is raised from a worker a traceback from the call originating the 
 
     PoolWorker-3 Error executing: print_test(2)
     Traceback (most recent call last):
-      File "../procol/pool/future.py", line 26, in __call__
-        result = super(PoolFunction, self).__call__()
-      File "build/bdist.macosx-10.9-intel/egg/funlib/__init__.py", line 55, in __call__
-        return self._fun(*self.args, **self.kwargs)
-      File "../tests/pool_test.py", line 8, in print_test
+    ......
         raise Exception('foo')
     Exception: foo
 
@@ -65,10 +61,6 @@ However if you want to retrieve the results of the futures the execution stops a
 
     PoolWorker-3 Error executing: print_test(2)
     Traceback (most recent call last):
-      File "../procol/pool/future.py", line 26, in __call__
-        result = super(PoolFunction, self).__call__()
-      File "build/bdist.macosx-10.9-intel/egg/funlib/__init__.py", line 55, in __call__
-        return self._fun(*self.args, **self.kwargs)
-      File "../tests/pool_test.py", line 8, in print_test
+    ......
         raise Exception('foo')
     Exception: foo
