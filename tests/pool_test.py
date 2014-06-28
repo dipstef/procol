@@ -27,7 +27,7 @@ def _iterate_features(pool):
 def main():
     pool = ProcessPool(5)
 
-    #_iterate_features(pool)
+    _iterate_features(pool)
 
     futures = pool.map_async(_sleep, reversed(range(5)))
     for future in futures.iterate_completed():

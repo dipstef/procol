@@ -22,8 +22,15 @@ A friendly wrapper of the ``multiprocessing`` Pool
 
     >>> pool = ProcessPool(5)
 
+.. code-block:: python
 
-Returns futures objects
+
+Returns futures for async operations
+
+.. code-block:: python
+    >>> future = pool.execute(_sleep, args=(1,))
+    assert 1 = future.get(
+
 
 .. code-block:: python
 
@@ -45,7 +52,7 @@ When an error is raised from a worker a traceback from the call originating the 
 
     PoolWorker-3 Error executing: _sleep(2)
     Traceback (most recent call last):
-    ......
+    ......File "..pool_test.py", line 8, in _sleep
         raise ValueError('two')
     ValueError: two
 
@@ -61,8 +68,8 @@ However if you want to retrieve the results of the futures the execution stops a
 
     PoolWorker-3 Error executing: _sleep(2)
     Traceback (most recent call last):
-    ......
-        raise ValueError('two')
+    ......File "..pool_test.py", line 8, in _sleep
+    raise ValueError('two')
     ValueError: two
 
 Has the exact behavior as:
