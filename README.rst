@@ -196,4 +196,4 @@ Repeater
 
 .. code-block:: python
 
-    >>> schedule(print_hello, every=seconds(10), after=seconds(2))
+    >>> repeat(print_hello, every=seconds(10))
