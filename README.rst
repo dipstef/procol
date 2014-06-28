@@ -152,7 +152,7 @@ Client:
    queue = queue_client(('server', 5000)
 
 
-High-performance ``zeromq`` queues:
+High-performance ``zeromq`` queue:
 
 Inter-process:
 
@@ -190,10 +190,10 @@ Scheduler
     def print_hello():
         print 'Hello: ' , datetime.now()
 
-    schedule(print_hello, after=seconds(2))
+    >>> schedule(print_hello, after=seconds(2))
 
 Repeater
 
-    .. code-block:: python
+.. code-block:: python
 
-    schedule(print_hello, every=seconds(10), after=seconds(2))
+    >>> schedule(print_hello, every=seconds(10), after=seconds(2))
