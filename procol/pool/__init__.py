@@ -1,8 +1,8 @@
 import atexit
 import multiprocessing
 
-from .future import PoolFunction, Future
-from procol.pool.future import Futures
+from .future import PoolFunction, Future, PoolFuture
+from .future import Futures, PoolWorkerError
 
 
 class ProcessPool(object):
@@ -12,11 +12,7 @@ class ProcessPool(object):
         atexit.register(lambda: self._pool.terminate())
 
     def execute(self, function, args=(), kwargs=None):
-        kwargs = kwargs or {}
-        function = PoolFunction(function, *args, **kwargs)
-
-        async_result = self._pool.apply_async(func=function)
-        return Future(function, async_result)
+        return PoolFuture(self._pool, (function, args, kwargs or {}))
 
     def map(self, function, args_list):
         'Will stop in case a worker raises an exception is raised in a worker'
