@@ -1,25 +1,44 @@
-from distutils.core import setup
+#!/usr/bin/env python
 
-VERSION = '0.1'
+import os
+import sys
 
-desc = """A library for concurrent processing:
-Includes producer-consumer for intra/inter process communication, as well remote implementations based on zero-mq
-and multiprocessing remote manager.
-Other features include scheduling and a pool worker"""
-
-name = 'procol'
+try:
+    from setuptools import setup
+except ImportError:
+    from distutils.core import setup
 
 
-setup(name=name,
-      version=VERSION,
-      author='Stefano Dipierro',
-      author_email='dipstef@github.com',
-      url='http://github.com/dipstef/{}/'.format(name),
-      description='A library for concurrent processing',
-      license='http://www.apache.org/licenses/LICENSE-2.0',
-      packages=['procol', 'procol.queue', 'procol.pool'],
-      platforms=['Any'],
-      long_description=desc,
-      requires=['pyzmq', 'funlib']
+# Publish Helper.
+if sys.argv[-1] == 'publish':
+    os.system('python setup.py sdist upload')
+    sys.exit()
+
+CLASSIFIERS = [
+    'Intended Audience :: Developers',
+    'Natural Language :: English',
+    'License :: OSI Approved :: Apache Software License',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 2.6',
+    'Programming Language :: Python :: 2.7',
+    'Programming Language :: Python :: 3.2',
+    'Topic :: Internet',
+    'Topic :: Utilities',
+]
+
+settings = dict(
+    name='procol',
+    version='0.1',
+    description='A concurrent processing library',
+    long_description=open('README.rst').read(),
+    author='Stefano Dipierro',
+    license='Apache 2.0',
+    url='https://github.com/dipstef/catches',
+    classifiers=CLASSIFIERS,
+    keywords='process thread multiprocessing pool scheduler zmq',
+    packages=['procol', 'procol.queue', 'procol.pool'],
+    requires=['pyzmq', 'funlib'],
+    test_suite='tests'
 )
 
+setup(**settings)
