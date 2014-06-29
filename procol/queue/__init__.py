@@ -181,7 +181,11 @@ class ProducerRun(object):
     def _produce_requests(self, produce):
         requests = self._producer_consumer.requests()
         for request in requests:
-            result = produce(request)
+            try:
+                result = (True, produce(request))
+            except BaseException, e:
+                result = (False, e)
+
             requests.send(result)
             #print request
         self._done_requests()
@@ -199,7 +203,10 @@ class ProducerConsumerRun(ProducerRun):
         super(ProducerConsumerRun, self).__init__(producer_consumer_class(), producer)
 
     def execute(self, request):
-        return self._producer_consumer.execute(request)
+        completed, result = self._producer_consumer.execute(request)
+        if not completed:
+            raise result
+        return result
 
 
 class ProducerThread(ProducerConsumerRun):

@@ -1,5 +1,6 @@
 from contextlib import contextmanager, closing
 from multiprocessing import Process, Lock
+from threading import Thread
 
 import zmq
 
@@ -62,7 +63,14 @@ class ProducerRun(BaseProducerRun):
 
     def execute(self, request):
         consumer = Consumer(*self._address)
-        return consumer.execute(request)
+        completed, result = consumer.execute(request)
+        if not completed:
+            raise result
+        return result
+
+
+class ProducerThread(ProducerRun):
+    __concurrent__ = Thread
 
 
 class ProducerProcess(ProducerRun):

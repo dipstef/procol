@@ -1,11 +1,11 @@
 from procol.queue.manager import queue_manager_process
 from procol.queue import ipc, threads, zero_mq, ProducerThread, ProducerProcess
-from procol.queue.threads import CallableRequests
+from procol.queue.threads import CallableRequests, CallableRequestsThread
 
 
 def produce(request):
-    #print 'Received', request
-    #print 'Sending Back', request
+    if request == (0, 0):
+        raise ValueError((0,0))
     return request
 
 
@@ -14,36 +14,39 @@ def _test_queue(requests):
     result = requests.execute((3, 4))
     assert (3, 4) == result
     assert (5, 6) == requests.execute((5, 6))
+    try:
+        requests.execute((0, 0))
+        assert False
+    except ValueError, e:
+        assert e.message == (0, 0)
 
     requests.close()
 
 
-def _start_requests(request_class):
-    requests = ProducerThread(request_class, producer=produce)
+def _test_requests(requests):
     requests.start()
-    return requests
+    _test_queue(requests)
 
 
 def _test_process_queue(request_class):
-    requests = ProducerProcess(request_class, producer=produce)
-    requests.start()
-    _test_queue(requests)
+    _test_requests(ProducerProcess(request_class, producer=produce))
 
 
 def _test_thread_queue(request_class):
-    requests = _start_requests(request_class)
-    _test_queue(requests)
+    _test_requests(ProducerThread(request_class, producer=produce))
 
 
 def _test_thread_pool():
-    requests = ProducerThread(CallableRequests, producer=lambda function: produce(function()))
+    requests = CallableRequestsThread(producer=lambda function: produce(function()))
 
     requests.start()
 
-    assert (1, 2) == requests.execute(lambda: (1, 2))
+    result = requests.execute(lambda: (1, 2))
+    assert (1, 2) == result
     result = requests.execute(lambda: (3, 4))
     assert (3, 4) == result
     assert (5, 6) == requests.execute(lambda: (5, 6))
+
     requests.close()
 
 
@@ -55,8 +58,8 @@ def _remote_manager_queue():
 
 
 def _test_zero_mq():
-    requests = _start_requests(zero_mq.Producer)
-    _test_queue(zero_mq.Consumer())
+    requests = zero_mq.ProducerThread(producer=produce)
+    _test_requests(requests)
     requests.close()
 
 

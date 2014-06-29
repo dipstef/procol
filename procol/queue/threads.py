@@ -41,7 +41,7 @@ class CallableRequests(ProducerConsumerBase):
         super(CallableRequests, self).__init__(ThreadProducerQueue())
 
     def execute(self, request):
-        request = IntraProcessFuture(request)
+        request = InProcessFuture(request)
         self._producer.send(request)
         return request.result
 
@@ -49,10 +49,10 @@ class CallableRequests(ProducerConsumerBase):
         super(CallableRequests, self)._result_produced(result)
 
 
-class IntraProcessFuture(FunctionCall):
+class InProcessFuture(FunctionCall):
 
     def __init__(self, function):
-        super(IntraProcessFuture, self).__init__(function)
+        super(InProcessFuture, self).__init__(function)
         self._queue = Queue(1)
 
     def _call_fun(self, *args, **kwargs):
@@ -81,3 +81,12 @@ class IntraProcessFuture(FunctionCall):
 class ProducerThread(RunInThread):
     def __init__(self, producer):
         super(ProducerThread, self).__init__(ProducerConsumer, producer)
+
+
+class CallableRequestsThread(RunInThread):
+
+    def __init__(self, producer):
+        super(CallableRequestsThread, self).__init__(CallableRequests, producer)
+
+    def execute(self, request):
+        return self._producer_consumer.execute(request)
