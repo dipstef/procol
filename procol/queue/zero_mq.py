@@ -6,8 +6,6 @@ import zmq
 
 from . import Producer as BaseProducer, ProducerRun as BaseProducerRun
 
-_context = zmq.Context()
-
 
 class Producer(BaseProducer):
 
@@ -15,9 +13,10 @@ class Producer(BaseProducer):
         super(Producer, self).__init__()
         self._address = 'tcp://{}:{}'.format(host, str(port))
         self._socket = None
+        self._context = zmq.Context()
 
     def _init(self):
-        self._socket = _context.socket(zmq.REP)
+        self._socket = self._context.socket(zmq.REP)
         self._socket.bind(self._address)
 
     def _result_produced(self, result):
@@ -38,6 +37,7 @@ class Consumer(object):
     def __init__(self, host='127.0.0.1', port=5557):
         self._address = 'tcp://{}:{}'.format(host, port)
         self._lock = Lock()
+        self._context = zmq.Context()
 
     def execute(self, request):
         with self._connect_to_producer() as producer:
@@ -47,7 +47,7 @@ class Consumer(object):
 
     @contextmanager
     def _connect_to_producer(self):
-        with closing(_context.socket(zmq.REQ)) as socket:
+        with closing(self._context.socket(zmq.REQ)) as socket:
             socket.connect(self._address)
             yield socket
 
