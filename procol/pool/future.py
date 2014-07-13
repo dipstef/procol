@@ -94,10 +94,8 @@ class PoolFuture(Future):
 
         if not executed:
             executed = self._pool_execution.ready()
-
             if executed:
                 self._get()
-
         return executed
 
 
