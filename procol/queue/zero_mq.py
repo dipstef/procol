@@ -1,5 +1,5 @@
 from contextlib import contextmanager, closing
-from multiprocessing import Process, Lock
+from multiprocessing import Process
 from threading import Thread
 
 import zmq
@@ -28,15 +28,12 @@ class Producer(BaseProducer):
             return request
 
     def _finalize(self):
-        print 'Closing Socket'
         self._socket.close()
-        print 'Closed'
 
 
 class Consumer(object):
     def __init__(self, host='127.0.0.1', port=5557):
         self._address = 'tcp://{}:{}'.format(host, port)
-        self._lock = Lock()
         self._context = zmq.Context()
 
     def execute(self, request):

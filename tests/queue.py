@@ -1,11 +1,11 @@
 from procol.queue.manager import queue_manager_process
 from procol.queue import ipc, threads, zero_mq, ProducerThread, ProducerProcess
-from procol.queue.threads import CallableRequests, CallableRequestsThread
+from procol.queue.threads import CallableRequestsThread
 
 
 def produce(request):
     if request == (0, 0):
-        raise ValueError((0,0))
+        raise ValueError((0, 0))
     return request
 
 
